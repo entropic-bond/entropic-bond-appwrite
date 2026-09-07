@@ -1,4 +1,4 @@
-name: Entropic Bond for AppWrite Release
+name: main
 
 on:
   push:
