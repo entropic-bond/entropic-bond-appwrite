@@ -1,0 +1,32 @@
+name: Entropic Bond for AppWrite Release
+
+on:
+  push:
+    branches:
+      - "master"
+
+permissions:
+  contents: write # to be able to publish a GitHub release
+  issues: write # to be able to comment on released issues
+  pull-requests: write # to be able to comment on released pull requests
+  id-token: write # to enable use of OIDC for trusted publishing and npm provenance
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.x"
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - run: npx semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

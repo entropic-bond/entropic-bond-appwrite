@@ -1,0 +1,15 @@
+logs/*
+!.gitkeep
+node_modules/
+/npm-debug.log
+npm-debug.log
+out/
+dist/
+tmp/
+coverage/
+lib/
+.vscode/
+*.log
+.env
+.env.*
+tests/.appwrite-config.json

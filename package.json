@@ -1,0 +1,76 @@
+{
+  "name": "@entropic-bond/appwrite",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "AppWrite plugins for Entropic Bond",
+  "main": "./lib/entropic-bond-appwrite.umd.cjs",
+  "module": "./lib/entropic-bond-appwrite.js",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "import": "./lib/entropic-bond-appwrite.js",
+      "require": "./lib/entropic-bond-appwrite.umd.cjs"
+    }
+  },
+  "types": "./lib/index.d.ts",
+  "bin": {
+    "entropic-bond-appwrite-setup": "scripts/setup-cloud.ts"
+  },
+  "files": [
+    "lib",
+    "scripts"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "branches": [
+      "master"
+    ]
+  },
+  "release": {
+    "plugins": [
+      "@semantic-release/release-notes-generator",
+      "@semantic-release/changelog",
+      "@semantic-release/npm",
+      "@semantic-release/git",
+      "@semantic-release/github"
+    ]
+  },
+  "scripts": {
+    "test": "vitest",
+    "test:integration": "docker compose -f docker-compose.test.yml up -d && APPWRITE_EMULATE=1 vitest && docker compose -f docker-compose.test.yml down",
+    "build": "vite build && tsc -p tsconfig-build.json --emitDeclarationOnly",
+    "prepare": "npm run build",
+    "typecheck:scripts": "tsc --noEmit -p tsconfig.scripts.json",
+    "setup:cloud": "node scripts/setup-cloud.ts",
+    "appwrite:up": "docker compose -f docker-compose.test.yml up -d",
+    "appwrite:down": "docker compose -f docker-compose.test.yml down"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/entropic-bond/entropic-bond-appwrite.git"
+  },
+  "keywords": [
+    "appwrite",
+    "entropic bond"
+  ],
+  "author": "Josep Seto",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/entropic-bond/entropic-bond-appwrite/issues"
+  },
+  "homepage": "https://github.com/entropic-bond/entropic-bond-appwrite#readme",
+  "devDependencies": {
+    "@semantic-release/changelog": "^7.0.0",
+    "@semantic-release/git": "^11.0.1",
+    "@types/node": "^26.5.0",
+    "semantic-release": "^25.0.9",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.2",
+    "vitest": "^5.0.0"
+  },
+  "dependencies": {
+    "appwrite": "^26.2.0",
+    "entropic-bond": "^1.60.3",
+    "node-appwrite": "^29.0.0"
+  }
+}

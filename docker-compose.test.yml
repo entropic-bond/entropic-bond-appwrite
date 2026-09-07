@@ -1,0 +1,23 @@
+services:
+  appwrite:
+    image: appwrite/appwrite:1.8.0
+    container_name: entropic-bond-appwrite-test
+    environment:
+      _APP_ENV: development
+      _APP_OPENSSL_KEY_V1: 7e6c77d84b3c7e4f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e
+      _APP_DOMAIN: localhost
+      _APP_DOMAIN_TARGET: localhost
+      _APP_OPTIONS_ABUSE: disabled
+      _APP_CONSOLE_WHITELIST_EMAILS: root@appwrite.io
+    ports:
+      - "80:80"
+    volumes:
+      - appwrite-test-data:/storage
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+volumes:
+  appwrite-test-data:

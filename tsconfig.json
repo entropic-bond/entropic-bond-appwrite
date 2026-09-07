@@ -1,0 +1,31 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "esModuleInterop": true,
+    "moduleResolution": "bundler",
+    "sourceMap": true,
+    "outDir": "lib",
+    "rootDir": "src/",
+    "resolveJsonModule": true,
+    "lib": [
+      "esnext", "DOM"
+    ],
+    "declaration": true,
+    "experimentalDecorators": true,
+    "allowJs": true,
+    "isolatedModules": true,
+    "strictNullChecks": true,
+    "strictPropertyInitialization": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitThis": true,
+    "types": [
+      "vitest/globals",
+      "node"
+    ]
+  },
+  "include": ["src"]
+}
