@@ -1,3 +1,11 @@
+## [1.0.2](https://github.com/entropic-bond/entropic-bond-appwrite/compare/v1.0.1...v1.0.2) (2026-09-07)
+
+
+### Bug Fixes
+
+* add commit-analyzer plugin and move branches config to release ([26dfc8b](https://github.com/entropic-bond/entropic-bond-appwrite/commit/26dfc8ba9679291008a80370a1922af5fe5f8371))
+* rename branch ([c46ff8d](https://github.com/entropic-bond/entropic-bond-appwrite/commit/c46ff8de89ddaf03d4df2151c74c06332458c815))
+
 ## [1.0.1](https://github.com/entropic-bond/entropic-bond-appwrite/compare/v1.0.0...v1.0.1) (2026-09-07)
 
 
