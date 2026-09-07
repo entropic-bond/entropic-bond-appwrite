@@ -3,7 +3,7 @@ name: Entropic Bond for AppWrite Release
 on:
   push:
     branches:
-      - "master"
+      - "main"
 
 permissions:
   contents: write # to be able to publish a GitHub release
