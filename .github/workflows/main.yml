@@ -3,7 +3,7 @@ name: main
 on:
   push:
     branches:
-      - "main"
+      - "master"
 
 permissions:
   contents: write # to be able to publish a GitHub release
