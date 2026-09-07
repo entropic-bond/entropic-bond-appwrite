@@ -1,7 +1,7 @@
 {
   "name": "@entropic-bond/appwrite",
   "type": "module",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "AppWrite plugins for Entropic Bond",
   "main": "./lib/entropic-bond-appwrite.umd.cjs",
   "module": "./lib/entropic-bond-appwrite.js",
