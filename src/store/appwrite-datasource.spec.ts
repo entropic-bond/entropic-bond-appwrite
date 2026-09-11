@@ -594,6 +594,22 @@ describeIntegration( 'AppWrite Datasource', ()=>{
 			}))
 		})
 
+		it( 'should emit delete type when an existing document is deleted', async ()=>{
+			const loadedUser = await model.findById( 'user6' )
+			const listener = vi.fn()
+
+			unsubscribe = model.onDocumentChange( 'user6', listener )
+			await model.delete( loadedUser!.id )
+			await delay()
+			unsubscribe()
+
+			expect( listener ).toHaveBeenCalledWith( expect.objectContaining({
+				after: undefined,
+				type: 'delete',
+				collectionPath: 'TestUser'
+			}))
+		})
+
 		it( 'should listen for update changes in collection', async ()=>{
 			const loadedUser = await model.findById( 'user6' )
 			const listener = vi.fn()
@@ -608,7 +624,44 @@ describeIntegration( 'AppWrite Datasource', ()=>{
 					after: expect.objectContaining({ id: 'user6' }),
 					type: expect.stringMatching( /create|update/ )
 				})
-			]))
+			]), expect.any( Array ))
+		})
+
+		it( 'should listen for deletions in collection', async ()=>{
+			const loadedUser = await model.findById( 'user6' )
+			const listener = vi.fn()
+
+			unsubscribe = model.onCollectionChange( model.find(), listener )
+			await model.delete( loadedUser!.id )
+			await delay()
+			unsubscribe()
+
+			expect( listener ).toHaveBeenCalledWith(
+				[expect.objectContaining({
+					after: undefined,
+					type: 'delete',
+					before: undefined,
+					params: {}
+				})],
+				expect.any( Array )
+			)
+		})
+
+		it( 'should pass snapshot as second argument in onCollectionChange', async ()=>{
+			const loadedUser = await model.findById( 'user6' )
+			const listener = vi.fn()
+
+			unsubscribe = model.onCollectionChange( model.find(), listener )
+			await model.save( loadedUser! )
+			await delay()
+			unsubscribe()
+
+			expect( listener ).toHaveBeenCalledWith(
+				expect.any( Array ),
+				expect.arrayContaining([
+					expect.objectContaining({ id: 'user6' })
+				])
+			)
 		})
 
 	})

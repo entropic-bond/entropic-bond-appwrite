@@ -71,7 +71,7 @@
   },
   "dependencies": {
     "appwrite": "^26.2.0",
-    "entropic-bond": "^1.60.3",
+    "entropic-bond": "^1.61.0",
     "node-appwrite": "^29.0.0"
   }
 }

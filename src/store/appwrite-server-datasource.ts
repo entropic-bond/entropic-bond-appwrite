@@ -174,16 +174,31 @@ export class AppWriteServerDatasource extends DataSource {
 		return this.getFromQuery( databaseId, this._lastCollectionId, queries )
 	}
 
+	/**
+	 * Realtime subscriptions are not supported in the server-side AppWrite SDK.
+	 * The server SDK uses REST API calls and does not have WebSocket support.
+	 * Use the client-side AppWriteDatasource for realtime functionality.
+	 */
 	override onCollectionChange( query: QueryObject<DocumentObject>, collectionName: string, listener: CollectionChangeListener<DocumentObject> ): Unsubscriber {
-		throw new Error( 'Method not implemented.' )
+		throw new Error( 'Realtime subscriptions are not supported in the server-side AppWrite SDK. Use AppWriteDatasource for realtime functionality.' )
 	}
 
+	/**
+	 * Realtime subscriptions are not supported in the server-side AppWrite SDK.
+	 * The server SDK uses REST API calls and does not have WebSocket support.
+	 * Use the client-side AppWriteDatasource for realtime functionality.
+	 */
 	override onDocumentChange( documentPath: string, documentId: string, listener: DocumentChangeListener<DocumentObject> ): Unsubscriber {
-		throw new Error( 'Method not implemented.' )
+		throw new Error( 'Realtime subscriptions are not supported in the server-side AppWrite SDK. Use AppWriteDatasource for realtime functionality.' )
 	}
 
+	/**
+	 * Realtime subscriptions are not supported in the server-side AppWrite SDK.
+	 * The server SDK uses REST API calls and does not have WebSocket support.
+	 * Use the client-side AppWriteDatasource for realtime functionality.
+	 */
 	override onDocumentTemplateChange( collectionTemplate: string, listener: DocumentChangeListener<DocumentObject> ): Unsubscriber {
-		throw new Error( 'Method not implemented.' )
+		throw new Error( 'Realtime subscriptions are not supported in the server-side AppWrite SDK. Use AppWriteDatasource for realtime functionality.' )
 	}
 
 	protected async resolveCollectionPaths( template: string ): Promise<string[]> {

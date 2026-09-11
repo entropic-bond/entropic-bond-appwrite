@@ -181,10 +181,13 @@ export class AppWriteDatasource extends DataSource {
 		const { collectionId, parentId } = mapCollectionPath( collectionName )
 		const channel = Channel.database( databaseId ).collection( collectionId ).document().toString()
 
-		return client.subscribe<RealtimeDocument>( channel, payload => {
+		return client.subscribe<RealtimeDocument>( channel, async payload => {
 			const changes = this.toCollectionChanges( payload, collectionName )
 				.filter( change => !parentId || ( payload.payload as Record<string, unknown> )?.[ '__parentId' ] === parentId )
-			if ( changes.length > 0 ) listener( changes )
+			if ( changes.length > 0 ) {
+				const snapshot = await this.find( query, collectionName )
+				listener( changes, snapshot )
+			}
 		})
 	}
 
@@ -195,10 +198,11 @@ export class AppWriteDatasource extends DataSource {
 		const channel = Channel.database( databaseId ).collection( collectionId ).document( documentId ).toString()
 
 		return client.subscribe<RealtimeDocument>( channel, payload => {
+			const type = this.getEventType( payload.events )
 			listener({
-				type: 'update',
+				type,
 				before: undefined,
-				after: AppWriteDatasource.toDocumentObject( payload.payload ),
+				after: type === 'delete' ? undefined : AppWriteDatasource.toDocumentObject( payload.payload ),
 				params: payload,
 				collectionPath: documentPath
 			})
@@ -322,7 +326,7 @@ export class AppWriteDatasource extends DataSource {
 
 	private toCollectionChanges( payload: { events: string[]; payload: RealtimeDocument }, collectionPath: string ): DocumentChange<DocumentObject>[] {
 		return payload.events.map( event => {
-			const type = event.includes( '.create' ) ? 'create' : event.includes( '.delete' ) ? 'delete' : 'update'
+			const type = this.getEventType( [ event ] )
 			return {
 				type,
 				after: type === 'delete' ? undefined : AppWriteDatasource.toDocumentObject( payload.payload ),
@@ -331,6 +335,14 @@ export class AppWriteDatasource extends DataSource {
 				collectionPath
 			} as DocumentChange<DocumentObject>
 		})
+	}
+
+	private getEventType( events: string[] ): 'create' | 'update' | 'delete' {
+		return events.some( event => event.includes( '.delete' ) )
+			? 'delete'
+			: events.some( event => event.includes( '.create' ) )
+				? 'create'
+				: 'update'
 	}
 
 	private concretePathFromTemplate( template: string, doc: RealtimeDocument ): string {
