@@ -1,3 +1,10 @@
+## [1.0.3](https://github.com/entropic-bond/entropic-bond-appwrite/compare/v1.0.2...v1.0.3) (2026-09-11)
+
+
+### Bug Fixes
+
+* align onCollectionChange/onDocumentChange with core removal semantics ([918f2b2](https://github.com/entropic-bond/entropic-bond-appwrite/commit/918f2b2bf59dd0246cac474a1234d6e67d9404ae)), closes [#2](https://github.com/entropic-bond/entropic-bond-appwrite/issues/2)
+
 ## [1.0.2](https://github.com/entropic-bond/entropic-bond-appwrite/compare/v1.0.1...v1.0.2) (2026-09-07)
 
 
