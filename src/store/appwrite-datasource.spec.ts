@@ -455,6 +455,20 @@ describeIntegration( 'AppWrite Datasource', ()=>{
 				const docs = await model.next( 20 )
 				expect( docs ).toHaveLength( 0 )
 			})
+
+			it( 'Interleaved pagination on two queries of one data source keeps each result set. Issue #3 [REQ-2]', async ()=>{
+				const otherModel = Store.getModel<TestUser>( 'TestUser' )
+
+				const firstRes = await model.find().orderBy( 'id' ).get( 2 )
+				const secondRes = await otherModel.find().orderBy( 'id' ).get( 3 )
+				expect( firstRes.map( user => user.id ) ).toEqual([ 'user1', 'user2' ])
+				expect( secondRes.map( user => user.id ) ).toEqual([ 'user1', 'user2', 'user3' ])
+
+				const firstNext = await model.next()
+				const secondNext = await otherModel.next()
+				expect( firstNext.map( user => user.id ) ).toEqual([ 'user3', 'user4' ])
+				expect( secondNext.map( user => user.id ) ).toEqual([ 'user4', 'user5', 'user6' ])
+			})
 		})
 	})
 

@@ -1,5 +1,5 @@
 import { AppwriteException, Databases } from 'node-appwrite'
-import { TransactionConflictError } from 'entropic-bond'
+import { TransactionConflictError, TransactionHandle } from 'entropic-bond'
 import { AppWriteServerHelper } from '../appwrite-server-helper'
 import { AppWriteServerDatasource } from './appwrite-server-datasource'
 
