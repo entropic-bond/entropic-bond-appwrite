@@ -108,6 +108,14 @@ describe( 'AppWrite query constraints', ()=>{
 		expect( queries ).toEqual([ Query.limit( 2 ) ])
 	})
 
+	it( 'should build paged constraints without a limit entry', ()=>{
+		const queries = AppWriteDatasource.buildPagedQueryConstraints({
+			limit: 2,
+			operations: [{ property: 'admin', operator: '==', value: true }]
+		} as any)
+		expect( queries ).toEqual([ Query.equal( 'admin', true ) ])
+	})
+
 	it( 'should translate deep property paths', ()=>{
 		const queries = AppWriteDatasource.buildQueryConstraints({
 			operations: [{ property: 'name', operator: '==', value: { firstName: 'userFirstName3' } }]

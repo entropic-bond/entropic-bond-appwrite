@@ -1,6 +1,7 @@
 import { AppwriteException, Channel, Models, Query } from 'appwrite'
-import { CollectionChangeListener, Collections, DataSource, DocumentChange, DocumentChangeListener, DocumentObject, QueryObject, QueryOperator, TransactionConflictError, TransactionHandle, Unsubscriber } from 'entropic-bond'
+import { CollectionChangeListener, Collections, DataSource, DocumentChange, DocumentChangeListener, DocumentObject, QueryCursor, QueryObject, QueryOperator, TransactionConflictError, TransactionHandle, Unsubscriber } from 'entropic-bond'
 import { AppWriteHelper } from '../appwrite-helper'
+import { AppWriteQueryCursor } from './appwrite-query-cursor'
 import { mapCollectionPath } from './collection-mapper'
 
 type RealtimeDocument = Models.Document & Record<string, unknown>
@@ -50,22 +51,20 @@ export class AppWriteDatasource extends DataSource {
 		return Promise.all( writes ).then( () => undefined )
 	}
 
-	find( queryObject: QueryObject<DocumentObject>, collectionName: string ): Promise<DocumentObject[]> {
+	find( queryObject: QueryObject<DocumentObject>, collectionName: string ): Promise<QueryCursor> {
 		const { databaseId } = AppWriteHelper.config
-		const db = AppWriteHelper.instance.databases()
 		const { collectionId, parentId } = mapCollectionPath( collectionName )
 
-		const queries = AppWriteDatasource.buildQueryConstraints( queryObject )
+		const queries = AppWriteDatasource.buildPagedQueryConstraints( queryObject )
 		if ( parentId ) queries.push( Query.equal( '__parentId', parentId ) )
-		this._lastQueries = queries
-		this._lastCollectionId = collectionId
-		this._lastLimit = queryObject.limit || 0
 
-		if ( queryObject.limit ) {
-			return this.getFromQuery( databaseId, collectionId, queries )
+		const limit = queryObject.limit || 0
+		if ( limit > 0 ) {
+			const fetchPage = ( pageQueries: string[] ) => this.pageFromQueries( databaseId, collectionId, pageQueries )
+			return Promise.resolve( new AppWriteQueryCursor( queries, limit, fetchPage ) )
 		}
 
-		return this.getAllFromQuery( databaseId, collectionId, queries )
+		return this.getAllFromQuery( databaseId, collectionId, queries ).then( docs => new QueryCursor( docs, 0 ) )
 	}
 
 	async count( queryObject: QueryObject<DocumentObject>, collectionName: string ): Promise<number> {
@@ -73,7 +72,7 @@ export class AppWriteDatasource extends DataSource {
 		const db = AppWriteHelper.instance.databases()
 		const { collectionId, parentId } = mapCollectionPath( collectionName )
 
-		const queries = AppWriteDatasource.buildQueryConstraints( queryObject ).filter( query => !query.startsWith( 'limit(' ) )
+		const queries = AppWriteDatasource.buildPagedQueryConstraints( queryObject )
 		if ( parentId ) queries.push( Query.equal( '__parentId', parentId ) )
 		const result = await db.listDocuments( databaseId, collectionId, queries, undefined, true )
 		return result.total
@@ -158,23 +157,6 @@ export class AppWriteDatasource extends DataSource {
 		}
 	}
 
-	next( maxDocs?: number ): Promise<DocumentObject[]> {
-		if ( !this._lastQueries || !this._lastCollectionId ) throw new Error( 'You should perform a query prior to using method next' )
-		if ( !this._lastDocRetrievedId ) return Promise.resolve( [] )
-
-		const { databaseId } = AppWriteHelper.config
-		const db = AppWriteHelper.instance.databases()
-
-		this._lastLimit = maxDocs || this._lastLimit
-		const queries = [
-			...this._lastQueries,
-			Query.limit( this._lastLimit ),
-			Query.cursorAfter( this._lastDocRetrievedId )
-		]
-
-		return this.getFromQuery( databaseId, this._lastCollectionId, queries )
-	}
-
 	override onCollectionChange( query: QueryObject<DocumentObject>, collectionName: string, listener: CollectionChangeListener<DocumentObject> ): Unsubscriber {
 		const { databaseId } = AppWriteHelper.config
 		const client = AppWriteHelper.instance.client()
@@ -185,8 +167,8 @@ export class AppWriteDatasource extends DataSource {
 			const changes = this.toCollectionChanges( payload, collectionName )
 				.filter( change => !parentId || ( payload.payload as Record<string, unknown> )?.[ '__parentId' ] === parentId )
 			if ( changes.length > 0 ) {
-				const snapshot = await this.find( query, collectionName )
-				listener( changes, snapshot )
+				const cursor = await this.find( query, collectionName )
+				listener( changes, await cursor.next() )
 			}
 		})
 	}
@@ -265,6 +247,16 @@ export class AppWriteDatasource extends DataSource {
 		return constraints
 	}
 
+	/**
+	 * Builds the query constraints leaving the page size out. Pagination page size
+	 * belongs to the cursor returned by find(), not to the constraint list.
+	 * @param queryObject the query object containing the query operations
+	 * @returns the constraints without any limit entry
+	 */
+	static buildPagedQueryConstraints( queryObject: QueryObject<DocumentObject> ): string[] {
+		return this.buildQueryConstraints( queryObject ).filter( query => !query.startsWith( '{"method":"limit"' ) )
+	}
+
 	static toAppwriteConstraint( property: string, operator: QueryOperator, value: unknown ): string {
 		switch( operator ) {
 			case '==': return Query.equal( property, value as never )
@@ -279,18 +271,11 @@ export class AppWriteDatasource extends DataSource {
 		}
 	}
 
-	private async getFromQuery( databaseId: string, collectionName: string, queries: string[] ): Promise<DocumentObject[]> {
+	private async pageFromQueries( databaseId: string, collectionName: string, queries: string[] ): Promise<DocumentObject[]> {
 		const db = AppWriteHelper.instance.databases()
 		const result = await db.listDocuments( databaseId, collectionName, queries )
 
-		const docs = result.documents
-		if ( docs.length === 0 ) {
-			this._lastDocRetrievedId = undefined
-			return []
-		}
-
-		this._lastDocRetrievedId = docs[ docs.length - 1 ]!.$id
-		return docs.map( doc => AppWriteDatasource.toDocumentObject( doc ) )
+		return result.documents.map( doc => AppWriteDatasource.toDocumentObject( doc ) )
 	}
 
 	private async getAllFromQuery( databaseId: string, collectionName: string, queries: string[] ): Promise<DocumentObject[]> {
@@ -310,10 +295,6 @@ export class AppWriteDatasource extends DataSource {
 			offset += docs.length
 			if ( docs.length < MAX_FETCH_CHUNK ) break
 		}
-
-		this._lastDocRetrievedId = allDocs.length > 0
-			? ( allDocs[ allDocs.length - 1 ] as unknown as { $id?: string } ).$id
-			: undefined
 
 		return allDocs
 	}
@@ -351,9 +332,4 @@ export class AppWriteDatasource extends DataSource {
 		const parentId = ( doc as Record<string, unknown> )[ '__parentId' ]
 		return parentId ? `${ segments[ 0 ] }/${ parentId }/${ segments[ 2 ] }` : template
 	}
-
-	private _lastQueries: string[] | undefined
-	private _lastCollectionId: string | undefined
-	private _lastDocRetrievedId: string | undefined
-	private _lastLimit: number = 0
 }

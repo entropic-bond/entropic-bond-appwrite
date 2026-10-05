@@ -1,7 +1,8 @@
 import { AppwriteException, Query } from 'node-appwrite'
-import { CollectionChangeListener, Collections, DataSource, DocumentChangeListener, DocumentObject, QueryObject, TransactionConflictError, TransactionHandle, Unsubscriber } from 'entropic-bond'
+import { CollectionChangeListener, Collections, DataSource, DocumentChangeListener, DocumentObject, QueryCursor, QueryObject, TransactionConflictError, TransactionHandle, Unsubscriber } from 'entropic-bond'
 import { AppWriteServerHelper } from '../appwrite-server-helper'
 import { AppWriteDatasource } from './appwrite-datasource'
+import { AppWriteQueryCursor } from './appwrite-query-cursor'
 import { mapCollectionPath } from './collection-mapper'
 
 const MAX_FETCH_CHUNK = 5000
@@ -49,22 +50,20 @@ export class AppWriteServerDatasource extends DataSource {
 		return Promise.all( writes ).then( () => undefined )
 	}
 
-	override find( queryObject: QueryObject<DocumentObject>, collectionName: string ): Promise<DocumentObject[]> {
+	override find( queryObject: QueryObject<DocumentObject>, collectionName: string ): Promise<QueryCursor> {
 		const databaseId = AppWriteServerHelper.databaseId
-		const db = AppWriteServerHelper.instance.databases()
 		const { collectionId, parentId } = mapCollectionPath( collectionName )
 
-		const queries = AppWriteDatasource.buildQueryConstraints( queryObject )
+		const queries = AppWriteDatasource.buildPagedQueryConstraints( queryObject )
 		if ( parentId ) queries.push( Query.equal( '__parentId', parentId ) )
-		this._lastQueries = queries
-		this._lastCollectionId = collectionId
-		this._lastLimit = queryObject.limit || 0
 
-		if ( queryObject.limit ) {
-			return this.getFromQuery( databaseId, collectionId, queries )
+		const limit = queryObject.limit || 0
+		if ( limit > 0 ) {
+			const fetchPage = ( pageQueries: string[] ) => this.pageFromQueries( databaseId, collectionId, pageQueries )
+			return Promise.resolve( new AppWriteQueryCursor( queries, limit, fetchPage ) )
 		}
 
-		return this.getAllFromQuery( databaseId, collectionId, queries )
+		return this.getAllFromQuery( databaseId, collectionId, queries ).then( docs => new QueryCursor( docs, 0 ) )
 	}
 
 	override async count( queryObject: QueryObject<DocumentObject>, collectionName: string ): Promise<number> {
@@ -72,7 +71,7 @@ export class AppWriteServerDatasource extends DataSource {
 		const db = AppWriteServerHelper.instance.databases()
 		const { collectionId, parentId } = mapCollectionPath( collectionName )
 
-		const queries = AppWriteDatasource.buildQueryConstraints( queryObject ).filter( query => !query.startsWith( 'limit(' ) )
+		const queries = AppWriteDatasource.buildPagedQueryConstraints( queryObject )
 		if ( parentId ) queries.push( Query.equal( '__parentId', parentId ) )
 		const result = await db.listDocuments( databaseId, collectionId, queries, undefined, true )
 		return result.total
@@ -157,23 +156,6 @@ export class AppWriteServerDatasource extends DataSource {
 		}
 	}
 
-	override next( maxDocs?: number ): Promise<DocumentObject[]> {
-		if ( !this._lastQueries || !this._lastCollectionId ) throw new Error( 'You should perform a query prior to using method next' )
-		if ( !this._lastDocRetrievedId ) return Promise.resolve( [] )
-
-		const databaseId = AppWriteServerHelper.databaseId
-		const db = AppWriteServerHelper.instance.databases()
-
-		this._lastLimit = maxDocs || this._lastLimit
-		const queries = [
-			...this._lastQueries,
-			Query.limit( this._lastLimit ),
-			Query.cursorAfter( this._lastDocRetrievedId )
-		]
-
-		return this.getFromQuery( databaseId, this._lastCollectionId, queries )
-	}
-
 	/**
 	 * Realtime subscriptions are not supported in the server-side AppWrite SDK.
 	 * The server SDK uses REST API calls and does not have WebSocket support.
@@ -213,18 +195,11 @@ export class AppWriteServerDatasource extends DataSource {
 		return result.documents.map( doc => `${ mainCollection }/${ doc.$id }/${ subcollection }` )
 	}
 
-	private async getFromQuery( databaseId: string, collectionName: string, queries: string[] ): Promise<DocumentObject[]> {
+	private async pageFromQueries( databaseId: string, collectionName: string, queries: string[] ): Promise<DocumentObject[]> {
 		const db = AppWriteServerHelper.instance.databases()
 		const result = await db.listDocuments( databaseId, collectionName, queries )
 
-		const docs = result.documents
-		if ( docs.length === 0 ) {
-			this._lastDocRetrievedId = undefined
-			return []
-		}
-
-		this._lastDocRetrievedId = docs[ docs.length - 1 ]!.$id
-		return docs.map( doc => AppWriteDatasource.toDocumentObject( doc ) )
+		return result.documents.map( doc => AppWriteDatasource.toDocumentObject( doc ) )
 	}
 
 	private async getAllFromQuery( databaseId: string, collectionName: string, queries: string[] ): Promise<DocumentObject[]> {
@@ -245,15 +220,6 @@ export class AppWriteServerDatasource extends DataSource {
 			if ( docs.length < MAX_FETCH_CHUNK ) break
 		}
 
-		this._lastDocRetrievedId = allDocs.length > 0
-			? ( allDocs[ allDocs.length - 1 ] as unknown as { $id?: string } ).$id
-			: undefined
-
 		return allDocs
 	}
-
-	private _lastQueries: string[] | undefined
-	private _lastCollectionId: string | undefined
-	private _lastDocRetrievedId: string | undefined
-	private _lastLimit: number = 0
 }
