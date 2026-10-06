@@ -1,3 +1,10 @@
+## [1.0.4](https://github.com/entropic-bond/entropic-bond-appwrite/compare/v1.0.3...v1.0.4) (2026-10-06)
+
+
+### Bug Fixes
+
+* **deps:** publish build against entropic-bond ^2.0.4 ([#6](https://github.com/entropic-bond/entropic-bond-appwrite/issues/6)) ([96cc657](https://github.com/entropic-bond/entropic-bond-appwrite/commit/96cc657fac104f43170076cfe7f4488de59239a3)), closes [#5](https://github.com/entropic-bond/entropic-bond-appwrite/issues/5)
+
 ## [1.0.3](https://github.com/entropic-bond/entropic-bond-appwrite/compare/v1.0.2...v1.0.3) (2026-09-11)
 
 
